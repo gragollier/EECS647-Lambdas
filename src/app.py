@@ -106,3 +106,65 @@ def get_sub_hackit(event, context):
         "headers": {"Access-Control-Allow-Origin": "*"},
         "body": json.dumps(output)
     }
+
+def create_user(event, context):
+    user = json.loads(event['body'])
+    
+    cur = con.cursor()
+    status_code = 200
+    try:
+        cur.execute("INSERT INTO UserBio (username, bio) VALUES (%s, %s)", (user['username'], user['bio']))
+        con.commit()
+    except psycopg2.IntegrityError:
+        status_code = 409
+        con.rollback()
+
+    return {
+        "statusCode": status_code,
+        "headers": {"Access-Control-Allow-Origin": "*"},
+        "body": json.dumps(user)
+    }
+
+def get_user(event, context):
+    username = json.loads(event['body'])['username']
+
+    output = {}
+
+    cur = con.cursor()
+    cur.execute('''SELECT commentId, C.body, C.timestamp, P.title, P.forum FROM Comment C
+                JOIN Post P ON C.postId = P.postId
+                WHERE C.username = %s;''', (username, ))
+    rows = cur.fetchall()
+
+    output['comments'] = list(map(lambda row: {
+        'commentId': str(row[0]),
+        'body': row[1],
+        'timestamp': row[2],
+        'postTitle': row[3],
+        'postForum': row[4]
+        }, rows))
+    
+    cur.execute("SELECT postId, forum, title, timestamp FROM Post WHERE creator = %s", (username, ))
+    rows = cur.fetchall()
+    output['posts'] = list(map(lambda row: {
+        'postId': str(row[0]),
+        'forum': row[1],
+        'title': row[2],
+        'timestamp': row[3]
+    }, rows))
+
+    cur.execute("SELECT bio FROM UserBio WHERE username = %s", (username, ))
+    row = cur.fetchone()
+    output['bio'] = row[0]
+    output['username'] = username
+
+    con.commit()
+
+    return {
+        "statusCode": 200,
+        "headers": {"Access-Control-Allow-Origin": "*"},
+        "body": json.dumps(output)
+    }
+
+
+
