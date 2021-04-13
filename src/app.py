@@ -166,5 +166,43 @@ def get_user(event, context):
         "body": json.dumps(output)
     }
 
+def get_post(event, context):
+    post_id = json.loads(event['body'])['postId']
+
+    output = {}
+    
+    cur = con.cursor()
+    cur.execute('''
+            SELECT commentId, body, timestamp, C.username, U.bio FROM Comment C
+            JOIN UserBio U ON U.username = C.username
+            WHERE C.postId = %s;
+    ''', (post_id, ))
+    rows = cur.fetchall()
+
+    output['comments'] = list(map(lambda row: {
+        'commentId': str(row[0]),
+        'body': row[1],
+        'timestamp': row[2],
+        'username': row[3],
+        'userBio': row[4]
+    }, rows))
+
+    cur.execute("SELECT creator, forum, title, body, timestamp FROM Post WHERE postId = %s", (post_id, ))
+    row = cur.fetchone()
+    con.commit()
+
+    output['creator'] = row[0]
+    output['forum'] = row[1]
+    output['title'] = row[2]
+    output['body'] = row[3]
+    output['timestamp'] = row[4]
+    output['postId'] = post_id
+
+    return {
+        "statusCode": 200,
+        "headers": {"Access-Control-Allow-Origin": "*"},
+        "body": json.dumps(output)
+    }
+
 
 
