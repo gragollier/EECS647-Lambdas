@@ -76,16 +76,19 @@ def get_sub_hackit(event, context):
     sub_name = json.loads(event['body'])['name']
     
     cur = con.cursor()
-    cur.execute("SELECT postId, creator, title, body, timestamp FROM Post WHERE forum = %s;", (sub_name, ))
+    cur.execute('''SELECT postId, creator, bio, title, body, timestamp FROM Post P
+                JOIN UserBio U ON P.creator = U.username
+                WHERE P.forum = %s;''', (sub_name, ))
     rows = cur.fetchall()
     con.commit()
 
     posts = list(map(lambda row: {
             "postId": str(row[0]),
             "creator": row[1],
-            "title": row[2],
-            "body": row[3],
-            "timestamp": row[4]
+            "creatorBio": row[2],
+            "title": row[3],
+            "body": row[4],
+            "timestamp": row[5]
         }, rows))
 
     cur.execute("SELECT name, description FROM Forum WHERE name = %s;", (sub_name, ))
