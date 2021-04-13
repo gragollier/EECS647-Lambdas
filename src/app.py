@@ -204,5 +204,28 @@ def get_post(event, context):
         "body": json.dumps(output)
     }
 
+def create_comment(event, context):
+    comment = json.loads(event['body'])
+    comment_id = uuid.uuid4()
+    timestamp = datetime.datetime.now().isoformat()
 
+    status_code = 200
+    cur = con.cursor()
+    try:
+        cur.execute("INSERT INTO Comment (commentId, body, timestamp, username, postId) VALUES (%s, %s, %s, %s, %s)", 
+            (comment_id, comment['body'], timestamp, comment['username'], comment['postId']))
+        con.commit()
+    except psycopg2.IntegrityError:
+        status_code = 409
+        con.rollback()
 
+    comment['commentId'] = str(comment_id)
+    comment['timestamp'] = timestamp
+    
+    return {
+        "statusCode": status_code,
+        "headers": {"Access-Control-Allow-Origin": "*"},
+        "body": json.dumps(comment)
+    }
+
+    

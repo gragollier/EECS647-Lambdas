@@ -94,6 +94,16 @@ Resources:
           Properties:
             Path: /getpost
             Method: post
+  CreateCommentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.create_comment
+      Events:
+        CreateSub:
+          Type: Api
+          Properties:
+            Path: /createcomment
+            Method: post
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
