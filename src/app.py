@@ -35,26 +35,36 @@ def create_sub_hackit(event, context):
         "headers": {"Access-Control-Allow-Origin": "*"}
     }
 
+def build_hackit_with_top(row):
+    if row[2] is not None:
+        return {
+            'name': row[0],
+            'description': row[1],
+            'topPost': {
+                'title': row[2],
+                'body': row[3],
+                'creator': row[4],
+                'timestamp': row[5],
+                'postId': str(row[6])
+                }
+            }
+    else: 
+        return {
+            'name': row[0],
+            'description': row[1],
+        }
+
 def list_sub_hackits(event, context):
     cur = con.cursor()
     cur.execute('''
         SELECT name, description, P.title, P.body, P.creator, P.timestamp, P.postId FROM Forum F, Post P
         WHERE P.postid IN (SELECT postId FROM Post PP WHERE PP.forum = F.name LIMIT 1)
-        LIMIT 50;''')
+        UNION
+        SELECT name, description, NULL, NULL, NULL, NULL, NULL FROM Forum
+        WHERE name NOT IN (SELECT forum FROM post);''')
     rows = cur.fetchall()
     con.commit()
-    output = list(map(lambda row: {
-        'name': row[0],
-        'description': row[1],
-        'topPost': {
-            'title': row[2],
-            'body': row[3],
-            'creator': row[4],
-            'timestamp': row[5],
-            'postId': str(row[6])
-            }
-        },  rows))
-
+    output = list(map(build_hackit_with_top, rows))
     return {
         "statusCode": 200,
         "body": json.dumps(output),
