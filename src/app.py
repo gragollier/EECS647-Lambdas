@@ -174,9 +174,8 @@ def get_post(event, context):
     
     cur = con.cursor()
     cur.execute('''
-            SELECT commentId, body, timestamp, C.username, U.bio FROM Comment C
-            JOIN UserBio U ON U.username = C.username
-            WHERE C.postId = %s;
+            SELECT commentId, body, timestamp, username FROM Comment C
+            WHERE postId = %s;
     ''', (post_id, ))
     rows = cur.fetchall()
 
@@ -184,11 +183,13 @@ def get_post(event, context):
         'commentId': str(row[0]),
         'body': row[1],
         'timestamp': row[2],
-        'username': row[3],
-        'userBio': row[4]
+        'username': row[3]
     }, rows))
 
-    cur.execute("SELECT creator, forum, title, body, timestamp FROM Post WHERE postId = %s", (post_id, ))
+    cur.execute('''
+        SELECT creator, forum, title, body, timestamp, B.bio FROM Post P
+        JOIN UserBio B ON B.username = P.creator
+        WHERE postId = %s''', (post_id, ))
     row = cur.fetchone()
     con.commit()
 
@@ -197,6 +198,7 @@ def get_post(event, context):
     output['title'] = row[2]
     output['body'] = row[3]
     output['timestamp'] = row[4]
+    output['creatorBio'] = row[5]
     output['postId'] = post_id
 
     return {
