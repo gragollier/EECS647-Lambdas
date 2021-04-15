@@ -37,10 +37,23 @@ def create_sub_hackit(event, context):
 
 def list_sub_hackits(event, context):
     cur = con.cursor()
-    cur.execute("SELECT name, description FROM Forum LIMIT 50;")
+    cur.execute('''
+        SELECT name, description, P.title, P.body, P.creator, P.timestamp, P.postId FROM Forum F, Post P
+        WHERE P.postid IN (SELECT postId FROM Post PP WHERE PP.forum = F.name LIMIT 1)
+        LIMIT 50;''')
     rows = cur.fetchall()
     con.commit()
-    output = list(map(lambda row: {'name': row[0], 'description': row[1]},  rows))
+    output = list(map(lambda row: {
+        'name': row[0],
+        'description': row[1],
+        'topPost': {
+            'title': row[2],
+            'body': row[3],
+            'creator': row[4],
+            'timestamp': row[5],
+            'postId': str(row[6])
+            }
+        },  rows))
 
     return {
         "statusCode": 200,
@@ -76,19 +89,17 @@ def get_sub_hackit(event, context):
     sub_name = json.loads(event['body'])['name']
     
     cur = con.cursor()
-    cur.execute('''SELECT postId, creator, bio, title, body, timestamp FROM Post P
-                JOIN UserBio U ON P.creator = U.username
-                WHERE P.forum = %s;''', (sub_name, ))
+    cur.execute('''SELECT postId, creator, title, body, timestamp FROM Post
+                WHERE forum = %s;''', (sub_name, ))
     rows = cur.fetchall()
     con.commit()
 
     posts = list(map(lambda row: {
             "postId": str(row[0]),
             "creator": row[1],
-            "creatorBio": row[2],
-            "title": row[3],
-            "body": row[4],
-            "timestamp": row[5]
+            "title": row[2],
+            "body": row[3],
+            "timestamp": row[4]
         }, rows))
 
     cur.execute("SELECT name, description FROM Forum WHERE name = %s;", (sub_name, ))
