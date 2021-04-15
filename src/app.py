@@ -131,7 +131,7 @@ def get_user(event, context):
     output = {}
 
     cur = con.cursor()
-    cur.execute('''SELECT commentId, C.body, C.timestamp, P.title, P.forum FROM Comment C
+    cur.execute('''SELECT commentId, C.body, C.timestamp, P.title, P.forum, P.postId FROM Comment C
                 JOIN Post P ON C.postId = P.postId
                 WHERE C.username = %s;''', (username, ))
     rows = cur.fetchall()
@@ -141,7 +141,8 @@ def get_user(event, context):
         'body': row[1],
         'timestamp': row[2],
         'postTitle': row[3],
-        'postForum': row[4]
+        'postForum': row[4],
+        'postId': str(row[5])
         }, rows))
     
     cur.execute("SELECT postId, forum, title, timestamp FROM Post WHERE creator = %s", (username, ))
